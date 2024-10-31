@@ -31,3 +31,15 @@ We will meet these goals through communicate and hard work.
 **Floyd** -> Manage the discord server
 
 **Jake** -> Set up basic presentation slides
+
+# Current Goals
+
+Determine parameters of model
+
+Develop research question further
+
+Do some basic research on invasive species
+
+### First Meeting
+
+November 7th, 6pm, Online meeting (Discord)
