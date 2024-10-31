@@ -21,3 +21,13 @@ Create a project that gives insight into how invasive species change ecosystems.
 Make engaging visuals for presentation.
 
 We will meet these goals through communicate and hard work.
+
+# Group Roles
+
+**Dev** -> Schedules group meetings and makes sure everyone communicates where they're at
+
+**Anthony** -> Test code to ensure there are no current issues
+
+**Floyd** -> Manage the discord server
+
+**Jake** -> Set up basic presentation slides
