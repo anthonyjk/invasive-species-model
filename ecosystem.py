@@ -46,19 +46,20 @@ def arctic_cod():
 
     
 
-def leopard_seal(weight, step=1):
+def leopard_seal(step=1):
     global creatures
     # Leopard seals eat 4-6% of their bodyweight a day
     # however they do not eat during molten season, so we will adjust as 3.5 to 5%
     # SOURCE https://www.fisheries.noaa.gov/species/gray-seal
-    intake_max = random.uniform(.035, .05) * weight
-    intake_max *= step
-    
     cod_mass = 48
     krill_mass = .0025
 
     # Consumption
     for i in range(creatures['leopard_seal']):
+        weight = random.randint(650, 800)
+        intake_max = random.uniform(.035, .05) * weight
+        intake_max *= step
+        
         consumed = 0
         while consumed < intake_max:
             
@@ -144,13 +145,11 @@ def penguin(step=1):
         creatures['penguin'] -= death
     
 
-def orca(weight, step=1): # STEP = HOW MANY DAYS IN A STEP
+def orca(step=1): # STEP = HOW MANY DAYS IN A STEP
     global creatures
     # https://seaworld.org/animals/all-about/killer-whale/diet/
     # 1 - 3.5% of body mass per day (step)
     # average mass of an orca: 6,600 -> 8,800
-    intake_max = random.uniform(.01, .035) * weight
-    intake_max *= step
 
     # Mass in Pounds
     penguin_mass = 75 # https://seaworld.org/animals/facts/birds/penguins/
@@ -160,6 +159,10 @@ def orca(weight, step=1): # STEP = HOW MANY DAYS IN A STEP
     # Consumption
     for i in range(creatures['orca']):
         consumed = 0
+
+        weight = random.randint(6600, 8800)
+        intake_max = random.uniform(.01, .035) * weight
+        intake_max *= step
     
         while consumed < intake_max:
     
@@ -244,5 +247,8 @@ def baleen_whale(step=1):
             weights = [1 - death_chance, death_chance]
         )[0]
         creatures['baleen_whale'] -= death
+
+def cycle():
+    pass
 
     
