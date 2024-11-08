@@ -1,254 +1,146 @@
-# Ecosystem model
 import numpy as np
+import math
 import random
 
-creatures = {"baleen whale":25,
-             "krill":100000000,
-             "leopard seal": 25,
-             "arctic cod": 10000,
-             "penguin": 750,
-             "orca":10,
-             "plankton": np.inf # Infinite Plankton
+creatures = {"baleen whale": 25,
+             "krill": 1.35e6,
+             "leopard seal": 50,
+             "arctic cod": 2000,
+             "penguin": 1000,
+             "orca": 10,
+             "plankton": np.inf  # Infinite Plankton
 }
 
-def krill(step=1):
+# Functions to represent seasonal variability
+def seasonal_adjustment(day, amplitude=0.2):
+    return 1 + amplitude * math.sin(day * (2 * math.pi / 365))
+
+def krill(day):
     global creatures
-    # Eat plankton
+    base_growth_rate = 1.05
+    carrying_capacity = 1500000
 
-    # Reproduce
-    creatures['krill'] += 10000 * int(creatures['krill'] / 2) * step # 10K reproduce a day per krill
+    # Growth + Season
+    season_factor = seasonal_adjustment(day)
+    growth_rate = base_growth_rate * season_factor
 
-def arctic_cod():
-    # https://waves-vagues.dfo-mpo.gc.ca/library-bibliotheque/40695827.pdf
-    # No solid source on how many lbs cod eat a day
-    # Guess: 1% of bodyweight
-    # estimate: ~ 1920 krill eaten per day (per cod)
-    for i in range(creatures['arctic cod']):
-        creatures['krill'] -= 1920
+    # Predation Pressure
+    pred_max = 12500 + 1250 + 100
+    predation_pressure = (1 - (creatures['arctic cod'] + creatures['penguin'] + creatures['leopard seal']) / ((pred_max + carrying_capacity) / 2))
+    predation_pressure = max(predation_pressure, -1)
+    growth_rate += predation_pressure
 
-    # Reproduction
-    # thousands of eggs, annually
-    mates = int(creatures['arctic cod'] / 2)
-    for i in range(mates):
-        creatures['arctic cod'] += random.randint(500, 1500)
+    # Growth
+    krill_growth = int(creatures['krill'] * growth_rate)
+    krill_growth = min(krill_growth, carrying_capacity)
+    creatures['krill'] = krill_growth
 
-    # DEATH
-    # live 7 years
-    yrs = 7
-    death_chance = step / (yrs * 365.25)
-    for i in range(creatures['arctic cod']):
-        death = random.choices(
-            population=[0,1],
-            weights = [1 - death_chance, death_chance]
-        )[0]
-        creatures['arctic cod'] -= death
+    # Failsafe
+    if creatures['krill'] < carrying_capacity / 5:
+        creatures['krill'] *= 3
 
-
-    
-
-def leopard_seal(step=1):
+def cod(day):
     global creatures
-    # Leopard seals eat 4-6% of their bodyweight a day
-    # however they do not eat during molten season, so we will adjust as 3.5 to 5%
-    # SOURCE https://www.fisheries.noaa.gov/species/gray-seal
-    cod_mass = 48
-    krill_mass = .0025
+    birth_rate = 0.2
+    death_rate = 0.1
+    carrying_capacity = 12500
+    predation_factor = 20
+
+    # Season
+    season_factor = seasonal_adjustment(day)
+
+    if creatures['arctic cod'] != 0:
+        # Consumption
+        krill_eaten = int(creatures['arctic cod'] * predation_factor * season_factor)
+        creatures['krill'] = max(0, creatures['krill'] - krill_eaten)
+
+        # Reproduction
+        resource_availability = min(1, creatures['krill'] / (creatures['arctic cod'] + 0.001) * 0.001)
+        cod_growth = int(creatures['arctic cod'] * birth_rate * resource_availability * season_factor)
+        creatures['arctic cod'] += cod_growth
+
+        # Death
+        resource_unavailability = 1 - resource_availability
+        density = max(0, (creatures['arctic cod'] - carrying_capacity) / carrying_capacity)
+        cod_deaths = int(creatures['arctic cod'] * (death_rate * (1 + resource_unavailability / 2) + density) * season_factor)
+        creatures['arctic cod'] = max(0, creatures['arctic cod'] - cod_deaths)
+
+def penguin(day):
+    global creatures
+    birth_rate = 0.2
+    death_rate = 0.1
+    carrying_capacity = 1250
+    predation_factor = 50
+
+    # Seasonal Adjustment
+    season_factor = seasonal_adjustment(day)
 
     # Consumption
-    for i in range(creatures['leopard_seal']):
-        weight = random.randint(650, 800)
-        intake_max = random.uniform(.035, .05) * weight
-        intake_max *= step
-        
-        consumed = 0
-        while consumed < intake_max:
-            
-            prey_total = creatures['krill'] + creatures['arctic cod']
-            k_weight = creatures['krill'] / prey_total
-            c_weight = creatures['arctic cod'] / prey_total
-            
-            prey = random.choices(
-                population=['k', 'c'],
-                weights = [k_weight, c_weight]
-            )[0] # Need 0 to get rid of array type
-            if prey == 'k':
-                creatures['krill'] -= 1
-                consumed += krill_mass
-            elif prey == 'c':
-                creatures['arctic cod'] -= 1
-                consumed += cod_mass
+    krill_availability = calculate_availability(creatures['krill'], creatures['penguin'], predation_factor)
+    krill_eaten = int(creatures['penguin'] * predation_factor * krill_availability * season_factor)
+    creatures['krill'] = max(0, creatures['krill'] - krill_eaten)
 
     # Reproduction
-    # https://animaldiversity.org/accounts/Hydrurga_leptonyx
-    # once, yearly
-    yrs = 1
-    reproduce_chance = step / (yrs * 365.25)
-    mates = int(creatures['leopard seal'] / 2)
-    for i in range(mates):
-        birth = random.choices(
-            population=[0,1],
-            weights = [1 - reproduce_chance, reproduce_chance]
-        )[0]
-        creatures['leopard seal'] += birth
+    resource_availability = min(1, creatures['krill'] / (creatures['penguin'] * 0.001))
+    penguin_growth = int(creatures['penguin'] * birth_rate * resource_availability * season_factor)
+    creatures['penguin'] += penguin_growth
 
-    # DEATH
-    # https://www.antarctica.gov.au/about-antarctica/animals/seals/leopard-seal
-    # live 26 years
-    yrs = 26
-    death_chance = step / (yrs * 365.25)
-    for i in range(creatures['leopard seal']):
-        death = random.choices(
-            population=[0,1],
-            weights = [1 - death_chance, death_chance]
-        )[0]
-        creatures['leopard seal'] -= death
-    
+    # Death
+    resource_unavailability = 1 - resource_availability
+    density = max(0, (creatures['penguin'] - carrying_capacity) / carrying_capacity)
+    penguin_deaths = int(creatures['penguin'] * (death_rate * (1 + resource_unavailability / 2) + density) * season_factor)
+    creatures['penguin'] = max(0, creatures['penguin'] - penguin_deaths)
 
-def penguin(step=1):
+def seal(day):
     global creatures
-    # https://www.aquariumofpacific.org/onlinelearningcenter/species/emperor_penguin
-    # consume 4.4 to 11 lbs a day
-    for i in range(creatures['penguin']):
-        intake_max = random.uniform(4.4, 11) * step
-    
-        # Krill weigh .0025 lbs
-        krill_cons = 0
-        lbs_eaten = 0
-        while lbs_eaten < intake_max:
-            lbs_eaten += .0025
-            krill_cons += 1
-    
-        creatures['krill'] -= krill_cons
+    birth_rate = 0.2
+    death_rate = 0.1
+    carrying_capacity = 100
+    predation_factor = {'krill': 1000, 'cod': 10}
 
-    # Reproduction
-    # https://www.newquayzoo.org.uk/blog/5-surprising-facts-you-didnt-know-about-penguin-eggs
-    # 2 eggs per year
-    rep_chance = .33
-    mates = int(creatures['penguin'] / 2)
-    for i in range(mates):
-        birth = random.choices(
-            population=[0,1,2],
-            weights = [rep_chance, rep_chance, rep_chance]
-        )[0]
-        creatures['penguin'] += birth
-
-    # DEATH
-    # Penguins live 15 - 20 years
-    # We will use 16 years
-    yrs = 16
-    death_chance = step / (yrs * 365.25)
-    for i in range(creatures['penguin']):
-        death = random.choices(
-            population=[0,1],
-            weights = [1 - death_chance, death_chance]
-        )[0]
-        creatures['penguin'] -= death
-    
-
-def orca(step=1): # STEP = HOW MANY DAYS IN A STEP
-    global creatures
-    # https://seaworld.org/animals/all-about/killer-whale/diet/
-    # 1 - 3.5% of body mass per day (step)
-    # average mass of an orca: 6,600 -> 8,800
-
-    # Mass in Pounds
-    penguin_mass = 75 # https://seaworld.org/animals/facts/birds/penguins/
-    cod_mass = 48
-    seal_mass = 815
+    # Season
+    season_factor = seasonal_adjustment(day)
 
     # Consumption
-    for i in range(creatures['orca']):
-        consumed = 0
+    # Krill
+    krill_availability = calculate_availability(creatures['krill'], creatures['leopard seal'], predation_factor['krill'])
+    krill_eaten = int(creatures['leopard seal'] * predation_factor['krill'] * krill_availability * season_factor)
+    creatures['krill'] = max(0, creatures['krill'] - krill_eaten)
 
-        weight = random.randint(6600, 8800)
-        intake_max = random.uniform(.01, .035) * weight
-        intake_max *= step
-    
-        while consumed < intake_max:
-    
-            prey_total = creatures['penguin'] + creatures['leopard seal'] + creatures['arctic cod']
-            p_weight = creatures['penguin'] / prey_total
-            s_weight = creatures['leopard seal'] / prey_total
-            c_weight = creatures['arctic cod'] / prey_total
-            
-            prey = random.choices(
-                population=['p', 's', 'c'],
-                weights = [p_weight, s_weight, c_weight]
-            )[0] # Need 0 to get rid of array type
-            if prey == 'p':
-                creatures['penguin'] -= 1
-                consumed += penguin_mass
-            elif prey == 's':
-                creatures['leopard seal'] -= 1
-                consumed += seal_mass
-            elif prey == 'c':
-                creatures['arctic cod'] -= 1
-                consumed += cod_mass
+    # Cod
+    cod_availability = calculate_availability(creatures['arctic cod'], creatures['leopard seal'], predation_factor['cod'], m=5)
+    cod_eaten = int(creatures['leopard seal'] * predation_factor['cod'] * cod_availability * season_factor)
+    creatures['arctic cod'] = max(0, creatures['arctic cod'] - cod_eaten)
 
     # Reproduction
-    # https://www.nationalgeographic.com/animals/mammals/facts/orca
-    # 3 - 10 years for 1 baby
-    # Using 6.5 years
-    yrs = 6.5
-    reproduce_chance = step / (yrs * 365.25)
-    mates = int(creatures['orca'] / 2)
-    for i in range(mates):
-        birth = random.choices(
-            population=[0,1],
-            weights = [1 - reproduce_chance, reproduce_chance]
-        )[0]
-        creatures['orca'] += birth
+    resource_availability = min(1, (creatures['krill'] + creatures['arctic cod']) / (creatures['leopard seal'] + 0.0001) * 0.001)
+    seal_growth = int(creatures['leopard seal'] * birth_rate * resource_availability * season_factor)
+    creatures['leopard seal'] += seal_growth
 
-    # DEATH
-    # Orcas live 50 - 90 years
-    # We will use 75
-    yrs = 75
-    death_chance = step / (yrs * 365.25)
-    for i in range(creatures['orca']):
-        death = random.choices(
-            population=[0,1],
-            weights = [1 - death_chance, death_chance]
-        )[0]
-        creatures['orca'] -= death
+    # Death
+    resource_unavailability = 1 - resource_availability
+    density = max(0, (creatures['leopard seal'] - carrying_capacity) / carrying_capacity)
+    seal_deaths = int(creatures['leopard seal'] * (death_rate * (1 + resource_unavailability / 2) + density) * season_factor)
+    creatures['leopard seal'] = max(0, creatures['leopard seal'] - seal_deaths)
 
-def baleen_whale(step=1):
-    global creatures
-    # baleen whales only eat krill
-    # intake: 2600 lbs
-    # source: https://seaworld.org/animals/all-about/baleen-whales/diet
-    # krill weight 0.0025 pounds
-    # thus, eats 1040000 krill a day
-    for i in range(creatures['baleen whale']):
-        creatures['krill'] -= 1040000
+def calculate_availability(prey, predator, factor, m=1):
+    availability = 0
+    if prey != 0:
+        availability = max(0, 1 - (predator * factor * m / prey))
+    return availability
 
-    # Reproduction
-    # https://baleinesendirect.org/en/discover/life-of-whales/behaviour/reproduction/
-    # Gives birth every 1.5 - 3 years
-    # Using 2 years
-    yrs = 2
-    reproduce_chance = step / (yrs * 365.25)
-    mates = int(creatures['baleen_whale'] / 2)
-    for i in range(mates):
-        birth = random.choices(
-            population=[0,1],
-            weights = [1 - reproduce_chance, reproduce_chance]
-        )[0]
-        if birth == 1:
-            creatures['baleen_whale'] += 1
+def cycle(day):
+    krill(day)
+    cod(day)
+    penguin(day)
+    seal(day)
 
-    # DEATH
-    # Baleen whales lifespan is unknown, but we will estimate using other whales
-    # Guess: 80 years
-    yrs = 80
-    death_chance = step / (yrs * 365.25)
-    for i in range(creatures['baleen_whale']):
-        death = random.choices(
-            population=[0,1],
-            weights = [1 - death_chance, death_chance]
-        )[0]
-        creatures['baleen_whale'] -= death
-
-def cycle():
-    pass
-
-    
+x, k, p, c = [], [], [], []
+def run():
+    for i in range(1000):
+        if i > 5:
+            x.append(i)
+            k.append(creatures['krill'])
+            p.append(creatures['penguin'])
+            c.append(creatures['arctic cod'])
+        cycle(day=i)
