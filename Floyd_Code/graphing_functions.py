@@ -14,18 +14,20 @@ def set_dictionaries():
     #Creates a matrix to use for the directions of edges in the Networkx Plot.
     direction_dict = {"Arctic Cod": ["Orca", "Leopard Seal"], 
                     "Orca": [], 
-                    "Krill": ["Arctic Cod", "Orca", "Leopard Seal", "Balleen Whale", "Penguin"], 
+                    "Krill": ["Arctic Cod", "Orca", "Leopard Seal", "Baleen Whale", "Penguin"], 
                     "Penguin": ["Orca"], 
-                    "Balleen Whale": [], 
-                    "Leopard Seal": ["Orca"]}
+                    "Baleen Whale": [], 
+                    "Leopard Seal": ["Orca"],
+                     "Plankton": ["Arctic Cod", "Krill"]}
     
     #Creates a matrix to use for the locations of nodes in the Networkx Plot.
     position_dict = {"Arctic Cod": (1, 5), 
                     "Orca": (7, 4), 
                     "Krill": (3.5, 5.5), 
                     "Penguin": (5.75, 6.5), 
-                    "Balleen Whale": (2, 8), 
-                    "Leopard Seal": (6.5, 8)}
+                    "Baleen Whale": (2, 8), 
+                    "Leopard Seal": (6.5, 8),
+                    "Plankton": (2.25, 2)}
 
     #Creates a matrix to use for edge labels (Place Holder Code)
     edges_dict = {} #Place Holder Code
@@ -39,12 +41,55 @@ def set_dictionaries():
 
 
 
-def food_web_plot(direction_dict, position_dict, edges_dict, node_size_array = [3000, 3000, 3000, 3000, 3000, 3000]):
+
+def generate_color_list(creatures):
+    '''
+    This function generates a list of color values for use in the food_web_plot function.
+
+    Inputs: creatures (dictionary type object) with keys as animal names and values of numbers of those animals.
+
+    Outputs: A list of values for the intensity of the colors of the nodes in the Networkx graph. 
+    Each value being between 0 and 1 (inclusive).
+    '''
+    #Author Note, Update the denominator values when some testing is done
+    arctic_cod_color = creatures["arctic cod"] / (2000 * 5)
+    orca_color = creatures["orca"] / (10 * 5)
+    krill_color = creatures["krill"] / (1.35e6 * 5)
+    penguin_color = creatures["penguin"] / (1000 * 5)
+    baleen_whale_color = creatures["baleen whale"] / (5 * 25)
+    leopard_seal_color = creatures["leopard seal"] / (50 * 5)
+    plankton_color = 0
+
+    #Checks if invasive species has been added to the creatures dictionary and, if yes, adds a color for it to the color list.
+    if "invasive species" in creatures:
+        invasive_species_color = creatures["invasive_species"] / (1)
+        color_list = [arctic_cod_color, orca_color, krill_color, penguin_color, balleen_whale_color, leopard_seal_color, plankton_color, invasive_species_color]
+        for i in range(len(color_list)):
+            if color_list[i] > 1:
+                color_list[i] = 1
+
+    else:
+        color_list = [arctic_cod_color, orca_color, krill_color, penguin_color, balleen_whale_color, leopard_seal_color, plankton_color]
+        for i in range(len(color_list)):
+            if color_list[i] > 1:
+                color_list[i] = 1
+
+    return color_list
+
+
+
+
+
+
+def food_web_plot(direction_dict, position_dict, edges_dict, node_color_list = [.99999, .99999, .99999, .99999, 1, 1, 0], *, 
+                  node_size_list = [4500, 2000, 2000, 3000, 8000, 8000, 1000]):
     '''
     This function creates a Networkx graph.
 
     Inputs: direction_dict (dictionary type object), position_dict (dictionary type object), edges_dict (dictionary type object)
     This inputs are obtained from the set_dictionaries function, edges_dict is designed to be updated before use.
+    node_color_array (list type object), is a list of values for the intensity of the colors of the nodes. It must be of
+    the same length as the number of nodes in the Networkx graph and each value must be between 0 and 1.
     
     Optional Input of node_size_array (array type object with length == len(direction_dict). Changing this array is not recommended.
 
@@ -54,4 +99,4 @@ def food_web_plot(direction_dict, position_dict, edges_dict, node_size_array = [
     G = nx.DiGraph(direction_dict)
     plt.figure(3,figsize=(12,7)) #Sets the figuresize
     nx.draw_networkx_edge_labels(G, pos = position_dict, edge_labels = edges_dict, verticalalignment = "bottom") #Plots edge labels
-    nx.draw_networkx(G, pos = position_dict, node_size = node_size_array, node_color = "w") #Plots the nodes in white with locations
+    nx.draw_networkx(G, pos = position_dict, node_size = node_size_list, cmap = "BuPu", node_color = node_color_list, alpha = 0.8) #Plots the nodes in white with locations
