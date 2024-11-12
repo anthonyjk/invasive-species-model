@@ -1,11 +1,12 @@
 import numpy as np
 import math
 import random
+import pandas as pd
 
 creatures = {"baleen whale": 25,
              "krill": 1.35e6,
              "leopard seal": 50,
-             "arctic cod": 3000,
+             "arctic cod": 2250,#3000,
              "penguin": 1000,
              "orca": 10,
              "plankton": np.inf  # Infinite Plankton
@@ -35,9 +36,7 @@ def krill(day):
     krill_growth = min(krill_growth, carrying_capacity)
     creatures['krill'] = krill_growth
 
-    # Failsafe
-    if creatures['krill'] < carrying_capacity / 5:
-        creatures['krill'] *= 3
+    return krill_growth
 
 def cod(day):
     global creatures
@@ -65,6 +64,9 @@ def cod(day):
         cod_deaths = int(creatures['arctic cod'] * (death_rate * (1 + resource_unavailability / 2) + density) * season_factor)
         creatures['arctic cod'] = max(0, creatures['arctic cod'] - cod_deaths)
 
+        return [cod_growth, cod_deaths, krill_eaten]
+    return [0, 0, 0]
+
 def penguin(day):
     global creatures
     birth_rate = 0.2
@@ -90,6 +92,8 @@ def penguin(day):
     density = max(0, (creatures['penguin'] - carrying_capacity) / carrying_capacity)
     penguin_deaths = int(creatures['penguin'] * (death_rate * (1 + resource_unavailability / 2) + density) * season_factor)
     creatures['penguin'] = max(0, creatures['penguin'] - penguin_deaths)
+
+    return [penguin_growth, penguin_deaths, krill_eaten]
 
 def seal(day):
     global creatures
@@ -122,6 +126,8 @@ def seal(day):
     density = max(0, (creatures['leopard seal'] - carrying_capacity) / carrying_capacity)
     seal_deaths = int(creatures['leopard seal'] * (death_rate * (1 + resource_unavailability / 2) + density) * season_factor)
     creatures['leopard seal'] = max(0, creatures['leopard seal'] - seal_deaths)
+
+    return [seal_growth, seal_deaths, krill_eaten, cod_eaten]
 
 def orca(day):
     global creatures
@@ -160,6 +166,8 @@ def orca(day):
     orca_deaths = int(creatures['orca'] * (death_rate * (1 + resource_unavailability / 2) + density) * season_factor)
     creatures['orca'] = max(0, creatures['orca'] - orca_deaths)
 
+    return [orca_growth, orca_deaths, cod_eaten, penguin_eaten, seal_eaten]
+
 def whale(day):
     global creatures
     birth_rate = 0.2
@@ -187,6 +195,8 @@ def whale(day):
     whale_deaths = int(creatures['baleen whale'] * (death_rate * (1 + resource_unavailability / 2) + density) * season_factor)
     creatures['baleen whale'] = max(0, creatures['baleen whale'] - whale_deaths)
 
+    return [whale_growth, whale_deaths, krill_eaten]
+
 def calculate_availability(prey, predator, factor, m=1):
     if prey == 0:
         return 0
@@ -205,19 +215,87 @@ def cycle(day):
     orca(day)
     whale(day)
 
-x, k, p, c, s, o, w = [], [], [], [], [], [], []
+eco_data = pd.DataFrame([])
 def run():
-    global x, k, p, c, s, o, w
-    x, k, p, c, s, o, w = [], [], [], [], [], [], []
-    for i in range(365*4):
-        if i > 365:
-            x.append(i)
-            k.append(creatures['krill'])
-            p.append(creatures['penguin'])
-            c.append(creatures['arctic cod'])
-            s.append(creatures['leopard seal'])
-            o.append(creatures['orca'])
-            w.append(creatures['baleen whale'])
-        cycle(day=i)
-        #print(creatures)
-#run()
+    global eco_data
+    step = []
+    krill_pop, krill_growth = [], []
+    penguin_pop, penguin_growth, penguin_death, penguin_krill_consumed = [], [], [], []
+    cod_pop, cod_growth, cod_death, cod_krill_consumed = [],[],[],[]
+    seal_pop, seal_growth, seal_death, seal_krill_consumed, seal_cod_consumed = [],[],[],[],[]
+    orca_pop, orca_growth, orca_death, orca_cod_consumed, orca_penguin_consumed, orca_seal_consumed = [], [], [], [], [], []
+    whale_pop, whale_growth, whale_death, whale_krill_consumed = [],[],[],[]
+    for day in range(365 * 10): # 10 Years
+        step.append(day)
+        # Population Tracking
+        krill_pop.append(creatures['krill'])
+        penguin_pop.append(creatures['penguin'])
+        cod_pop.append(creatures['arctic cod'])
+        seal_pop.append(creatures['leopard seal'])
+        orca_pop.append(creatures['orca'])
+        whale_pop.append(creatures['baleen whale'])
+        # Other Variables
+        # Krill
+        krill_growth.append(krill(day))
+
+        # Penguin
+        g, d, kc = penguin(day)
+        penguin_growth.append(g)
+        penguin_death.append(d)
+        penguin_krill_consumed.append(kc)
+
+        # Arctic Cod
+        g, d, kc = cod(day)
+        cod_growth.append(g)
+        cod_death.append(d)
+        cod_krill_consumed.append(kc)
+
+        # Leopard Seal
+        g, d, kc, cc = seal(day)
+        seal_growth.append(g)
+        seal_death.append(d)
+        seal_krill_consumed.append(kc)
+        seal_cod_consumed.append(cc)
+
+        # Orca
+        g, d, cc, pc, sc = orca(day)
+        orca_growth.append(g)
+        orca_death.append(d)
+        orca_cod_consumed.append(cc)
+        orca_penguin_consumed.append(pc)
+        orca_seal_consumed.append(sc)
+
+        # Whale
+        g, d, kc = whale(day)
+        whale_growth.append(g)
+        whale_death.append(d)
+        whale_krill_consumed.append(kc)
+
+    eco_data = pd.DataFrame({
+    'step': step,
+    'krill_pop': krill_pop,
+    'krill_growth': krill_growth,
+    'penguin_pop': penguin_pop,
+    'penguin_growth': penguin_growth,
+    'penguin_death': penguin_death,
+    'penguin_krill_consumed': penguin_krill_consumed,
+    'cod_pop': cod_pop,
+    'cod_growth': cod_growth,
+    'cod_death': cod_death,
+    'cod_krill_consumed': cod_krill_consumed,
+    'seal_pop': seal_pop,
+    'seal_growth': seal_growth,
+    'seal_death': seal_death,
+    'seal_krill_consumed': seal_krill_consumed,
+    'seal_cod_consumed': seal_cod_consumed,
+    'orca_pop': orca_pop,
+    'orca_growth': orca_growth,
+    'orca_death': orca_death,
+    'orca_cod_consumed': orca_cod_consumed,
+    'orca_penguin_consumed': orca_penguin_consumed,
+    'orca_seal_consumed': orca_seal_consumed,
+    'whale_pop': whale_pop,
+    'whale_growth': whale_growth,
+    'whale_death': whale_death,
+    'whale_krill_consumed': whale_krill_consumed
+    })
