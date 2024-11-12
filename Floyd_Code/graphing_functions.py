@@ -36,10 +36,10 @@ def set_dictionaries():
                     "Baleen Whale": [], 
                     "Leopard Seal": ["orca_seal_consumed"]}
 
-    #Returns the above dictionaries
-    return direction_dict, position_dict, edges_dict, conversion_dict
+    #Creates a list to use in the food_web_plot function as node sizes.
+    node_size_list =  = [4500, 2000, 2000, 3000, 8000, 8000]
 
-
+    return direction_dict, position_dict, conversion_dict, node_size_list
 
 
 
@@ -53,12 +53,12 @@ def generate_color_list(creatures):
     Each value being between 0 and 1 (inclusive).
     '''
     #Author Note, Update the denominator values when some testing is done
-    arctic_cod_color = creatures["cod_pop"] / (2000 * 5)
-    orca_color = creatures["orca_pop"] / (10 * 5)
-    krill_color = creatures["krill_pop"] / (1.35e6 * 5)
-    penguin_color = creatures["penguin_pop"] / (1000 * 5)
-    baleen_whale_color = creatures["whale_pop"] / (5 * 25)
-    leopard_seal_color = creatures["seal_pop"] / (50 * 5)
+    arctic_cod_color = creatures.loc["cod_pop"] / (2000 * 5)
+    orca_color = creatures.loc["orca_pop"] / (10 * 5)
+    krill_color = creatures.loc["krill_pop"] / (1.35e6 * 5)
+    penguin_color = creatures.loc["penguin_pop"] / (1000 * 5)
+    baleen_whale_color = creatures.loc["whale_pop"] / (5 * 25)
+    leopard_seal_color = creatures.loc["seal_pop"] / (50 * 5)
 
     #Checks if invasive species has been added to the creatures dictionary and, if yes, adds a color for it to the color list.
     if "invasive species" in creatures:
@@ -84,7 +84,7 @@ def create_edges_dict(creatures, direction_dict, conversion_dict):
     '''
     This function creates a dictionary to use for the edge values in the Networkx graph.
 
-    Inputs: creatures (dictionary type object), direction_dict (dictionary type object), conversion_dict (dictionary type object).
+    Inputs: creatures (pandas dataframe), direction_dict (dictionary type object), conversion_dict (dictionary type object).
     The direction_dict and conversion_dict are recieved as outputs of the set_dictionaries function and can be used without alteration.
     The creatures dictionary is received from the run function in the ecosystem library. It contains the majority of all of the information that is calculated by the model. This function makes use only of certain relevant portions of this dictionary.
 
@@ -95,7 +95,7 @@ def create_edges_dict(creatures, direction_dict, conversion_dict):
     edges_dict = {}
     for i in range(len(direction_dict)):
         for j in range(len(direction_dict)):
-            edges_dict[(direction_dict[i] , direction_dict[i][j])] = creatures[conversion_dict[i][j]]
+            edges_dict[(direction_dict[i] , direction_dict[i][j])] = creatures.loc[conversion_dict[i][j]]
 
     return edges_dict
             
@@ -103,8 +103,8 @@ def create_edges_dict(creatures, direction_dict, conversion_dict):
 
 
 
-def food_web_plot(direction_dict, position_dict, edges_dict, node_color_list, *, 
-                  node_size_list = [4500, 2000, 2000, 3000, 8000, 8000]):
+def food_web_plot(direction_dict, position_dict, edges_dict, node_color_list, 
+                  node_size_list):
     '''
     This function creates a Networkx graph.
 
