@@ -11,25 +11,23 @@ def set_dictionaries():
     edges_dict is a dictionary indexed by tuples (first_node, second_node). Each key stores the info "Missing Val!" to
         help indicate whether these values were updated later.
     '''
-    #Creates a matrix to use for the directions of edges in the Networkx Plot.
+    #Creates a dictionary to use for the directions of edges in the Networkx Plot.
     direction_dict = {"Arctic Cod": ["Orca", "Leopard Seal"], 
                     "Orca": [], 
                     "Krill": ["Arctic Cod", "Orca", "Leopard Seal", "Baleen Whale", "Penguin"], 
                     "Penguin": ["Orca"], 
                     "Baleen Whale": [], 
-                    "Leopard Seal": ["Orca"],
-                     "Plankton": ["Arctic Cod", "Krill"]}
+                    "Leopard Seal": ["Orca"]}
     
-    #Creates a matrix to use for the locations of nodes in the Networkx Plot.
+    #Creates a dictionary to use for the locations of nodes in the Networkx Plot.
     position_dict = {"Arctic Cod": (1, 5), 
                     "Orca": (7, 4), 
                     "Krill": (3.5, 5.5), 
                     "Penguin": (5.75, 6.5), 
                     "Baleen Whale": (2, 8), 
-                    "Leopard Seal": (6.5, 8),
-                    "Plankton": (2.25, 2)}
+                    "Leopard Seal": (6.5, 8)}
 
-    #Creates a matrix to use for edge labels (Place Holder Code)
+    #Creates a dictionary to use for edge labels (Place Holder Code)
     edges_dict = {} #Place Holder Code
     for i in direction_dict:
         for j in direction_dict[i]:
@@ -58,7 +56,6 @@ def generate_color_list(creatures):
     penguin_color = creatures["penguin"] / (1000 * 5)
     baleen_whale_color = creatures["baleen whale"] / (5 * 25)
     leopard_seal_color = creatures["leopard seal"] / (50 * 5)
-    plankton_color = 0
 
     #Checks if invasive species has been added to the creatures dictionary and, if yes, adds a color for it to the color list.
     if "invasive species" in creatures:
@@ -81,8 +78,8 @@ def generate_color_list(creatures):
 
 
 
-def food_web_plot(direction_dict, position_dict, edges_dict, node_color_list = [.99999, .99999, .99999, .99999, 1, 1, 0], *, 
-                  node_size_list = [4500, 2000, 2000, 3000, 8000, 8000, 1000]):
+def food_web_plot(direction_dict, position_dict, edges_dict, node_color_list, *, 
+                  node_size_list = [4500, 2000, 2000, 3000, 8000, 8000]):
     '''
     This function creates a Networkx graph.
 
@@ -99,4 +96,4 @@ def food_web_plot(direction_dict, position_dict, edges_dict, node_color_list = [
     G = nx.DiGraph(direction_dict)
     plt.figure(3,figsize=(12,7)) #Sets the figuresize
     nx.draw_networkx_edge_labels(G, pos = position_dict, edge_labels = edges_dict, verticalalignment = "bottom") #Plots edge labels
-    nx.draw_networkx(G, pos = position_dict, node_size = node_size_list, cmap = "BuPu", node_color = node_color_list, alpha = 0.8) #Plots the nodes in white with locations
+    nx.draw_networkx(G, pos = position_dict, node_size = node_size_list, cmap = "BuPu", node_color = node_color_list, vmin = 0, vmax = 1, alpha = 0.8) #Plots the nodes in white with locations
