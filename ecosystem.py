@@ -2,11 +2,12 @@ import numpy as np
 import math
 import random
 import pandas as pd
+from invasive_species import new_king_crab
 
 creatures = {"baleen whale": 25,
-             "krill": 1.35e6,
+             "krill": 1.45e6,
              "leopard seal": 50,
-             "arctic cod": 2250,#3000,
+             "arctic cod": 10000,#3000,
              "penguin": 1000,
              "orca": 10,
              "plankton": np.inf  # Infinite Plankton
@@ -19,7 +20,7 @@ def seasonal_adjustment(day, amplitude=0.2):
 def krill(day):
     global creatures
     base_growth_rate = 1.05
-    carrying_capacity = 1500000
+    carrying_capacity = 2000000
 
     # Growth + Season
     season_factor = seasonal_adjustment(day)
@@ -40,9 +41,9 @@ def krill(day):
 
 def cod(day):
     global creatures
-    birth_rate = 0.5
+    birth_rate = 1.5
     death_rate = 0.1
-    carrying_capacity = 15000
+    carrying_capacity = 20000
     predation_factor = 20
 
     # Season
@@ -69,7 +70,7 @@ def cod(day):
 
 def penguin(day):
     global creatures
-    birth_rate = 0.2
+    birth_rate = 0.4
     death_rate = 0.1
     carrying_capacity = 1250
     predation_factor = 50
@@ -83,7 +84,7 @@ def penguin(day):
     creatures['krill'] = max(0, creatures['krill'] - krill_eaten)
 
     # Reproduction
-    resource_availability = min(1, creatures['krill'] / (creatures['penguin'] * 0.001))
+    resource_availability = min(1, creatures['krill'] / (creatures['penguin'] * 0.001 + 0.0001))
     penguin_growth = int(creatures['penguin'] * birth_rate * resource_availability * season_factor)
     creatures['penguin'] += penguin_growth
 
@@ -97,8 +98,8 @@ def penguin(day):
 
 def seal(day):
     global creatures
-    birth_rate = 0.2
-    death_rate = 0.1
+    birth_rate = 0.3
+    death_rate = 0.05
     carrying_capacity = 100
     predation_factor = {'krill': 1000, 'cod': 10}
 
@@ -112,12 +113,12 @@ def seal(day):
     creatures['krill'] = max(0, creatures['krill'] - krill_eaten)
 
     # Cod
-    cod_availability = calculate_availability(creatures['arctic cod'], creatures['leopard seal'], predation_factor['cod'], m=5)
+    cod_availability = calculate_availability(creatures['arctic cod'], creatures['leopard seal'], predation_factor['cod'], m=2)
     cod_eaten = int(creatures['leopard seal'] * predation_factor['cod'] * cod_availability * season_factor)
     creatures['arctic cod'] = max(0, creatures['arctic cod'] - cod_eaten)
 
     # Reproduction
-    resource_availability = min(1, (creatures['krill'] + creatures['arctic cod']) / (creatures['leopard seal'] + 0.0001) * 0.001)
+    resource_availability = min(1, (creatures['krill'] + creatures['arctic cod']) / (creatures['leopard seal'] + 0.0001) * 0.0001)
     seal_growth = int(creatures['leopard seal'] * birth_rate * resource_availability * season_factor)
     creatures['leopard seal'] += seal_growth
 
@@ -200,24 +201,19 @@ def whale(day):
 def calculate_availability(prey, predator, factor, m=1):
     if prey == 0:
         return 0
-        
-    percent = (predator * factor * m / prey)
-    if percent > 1:
-        return 0
-    else:
-        return percent
 
-def cycle(day):
-    krill(day)
-    cod(day)
-    penguin(day)
-    seal(day)
-    orca(day)
-    whale(day)
+    demand = predator * factor * m
+
+    if demand == 0:
+        return 0
+    availability_percentage = min(1, prey / demand)
+    
+    return availability_percentage
 
 eco_data = pd.DataFrame([])
-def run():
-    global eco_data
+crab_data = pd.DataFrame([])
+def run(invasive=False):
+    global eco_data, creatures
     step = []
     krill_pop, krill_growth = [], []
     penguin_pop, penguin_growth, penguin_death, penguin_krill_consumed = [], [], [], []
@@ -225,7 +221,13 @@ def run():
     seal_pop, seal_growth, seal_death, seal_krill_consumed, seal_cod_consumed = [],[],[],[],[]
     orca_pop, orca_growth, orca_death, orca_cod_consumed, orca_penguin_consumed, orca_seal_consumed = [], [], [], [], [], []
     whale_pop, whale_growth, whale_death, whale_krill_consumed = [],[],[],[]
-    for day in range(365 * 10): # 10 Years
+
+    if invasive:
+        creatures['king crab'] = 25
+        crab_pop, crab_growth, crab_death, crab_krill_consumed, crab_cod_consumed = [],[],[],[],[]
+    
+    for i in range(int(365*4)): # 10 Years
+        day = i+1
         step.append(day)
         # Population Tracking
         krill_pop.append(creatures['krill'])
@@ -234,6 +236,8 @@ def run():
         seal_pop.append(creatures['leopard seal'])
         orca_pop.append(creatures['orca'])
         whale_pop.append(creatures['baleen whale'])
+        if invasive:
+            crab_pop.append(creatures['king crab'])
         # Other Variables
         # Krill
         krill_growth.append(krill(day))
@@ -271,6 +275,18 @@ def run():
         whale_death.append(d)
         whale_krill_consumed.append(kc)
 
+        # King Crab (Invasive)
+        if invasive:
+            creatures, data = new_king_crab(day, creatures)
+            g, d, kc, cc = data
+            crab_growth.append(g)
+            crab_death.append(d)
+            crab_krill_consumed.append(kc)
+            crab_cod_consumed.append(cc)
+        if day > 0:
+            pass
+            #print(creatures)
+
     eco_data = pd.DataFrame({
     'step': step,
     'krill_pop': krill_pop,
@@ -299,3 +315,28 @@ def run():
     'whale_death': whale_death,
     'whale_krill_consumed': whale_krill_consumed
     })
+
+    if invasive:
+        crab_data = pd.DataFrame({
+            'step': step,
+            'crab_pop': crab_pop,
+            'crab_growth': crab_growth,
+            'crab_death': crab_death,
+            'crab_krill_consumed': crab_krill_consumed,
+            'crab_cod_consumed': crab_cod_consumed
+        })
+
+def reset_pops():
+    global creatures
+    creatures = {"baleen whale": 25,
+             "krill": 1.45e6,
+             "leopard seal": 50,
+             "arctic cod": 10000,#3000,
+             "penguin": 1000,
+             "orca": 10,
+             "plankton": np.inf  # Infinite Plankton
+    }
+#print("T")
+#run(invasive=True)
+#print("F")
+#run(invasive=False)
