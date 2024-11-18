@@ -17,9 +17,8 @@ creatures = {"baleen whale": 25,
 def seasonal_adjustment(day, amplitude=0.2):
     return 1 + amplitude * math.sin(day * (2 * math.pi / 365))
 
-def krill(day):
+def krill(day, base_growth_rate=1.05):
     global creatures
-    base_growth_rate = 1.05
     carrying_capacity = 2000000
 
     # Growth + Season
@@ -39,10 +38,8 @@ def krill(day):
 
     return krill_growth
 
-def cod(day):
+def cod(day, birth_rate=1.5, death_rate=0.1):
     global creatures
-    birth_rate = 1.5
-    death_rate = 0.1
     carrying_capacity = 20000
     predation_factor = 20
 
@@ -75,7 +72,7 @@ def penguin(day):
     carrying_capacity = 1250
     predation_factor = 50
 
-    # Seasonal Adjustment
+    # Season
     season_factor = seasonal_adjustment(day)
 
     # Consumption
@@ -96,10 +93,8 @@ def penguin(day):
 
     return [penguin_growth, penguin_deaths, krill_eaten]
 
-def seal(day):
+def seal(day, birth_rate=0.3, death_rate=0.05):
     global creatures
-    birth_rate = 0.3
-    death_rate = 0.05
     carrying_capacity = 100
     predation_factor = {'krill': 1000, 'cod': 10}
 
@@ -212,7 +207,7 @@ def calculate_availability(prey, predator, factor, m=1):
 
 eco_data = pd.DataFrame([])
 crab_data = pd.DataFrame([])
-def run(invasive=False):
+def run(invasive=False, cod_birth_rate=1.5, cod_death_rate=0.1):
     global eco_data, creatures
     step = []
     krill_pop, krill_growth = [], []
@@ -226,7 +221,7 @@ def run(invasive=False):
         creatures['king crab'] = 25
         crab_pop, crab_growth, crab_death, crab_krill_consumed, crab_cod_consumed = [],[],[],[],[]
     
-    for i in range(int(365*4)): # 10 Years
+    for i in range(int(365*5)): # 5 Years
         day = i+1
         step.append(day)
         # Population Tracking
@@ -249,7 +244,7 @@ def run(invasive=False):
         penguin_krill_consumed.append(kc)
 
         # Arctic Cod
-        g, d, kc = cod(day)
+        g, d, kc = cod(day, cod_birth_rate, cod_death_rate)
         cod_growth.append(g)
         cod_death.append(d)
         cod_krill_consumed.append(kc)
