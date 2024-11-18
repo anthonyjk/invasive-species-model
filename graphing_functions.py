@@ -37,7 +37,7 @@ def set_dictionaries():
                     "Leopard Seal": ["orca_seal_consumed"]}
 
     #Creates a list to use in the food_web_plot function as node sizes.
-    node_size_list =  = [4500, 2000, 2000, 3000, 8000, 8000]
+    node_size_list = [4500, 2000, 2000, 3000, 8000, 8000]
 
     return direction_dict, position_dict, conversion_dict, node_size_list
 
@@ -53,26 +53,24 @@ def generate_color_list(creatures):
     Each value being between 0 and 1 (inclusive).
     '''
     #Author Note, Update the denominator values when some testing is done
-    arctic_cod_color = creatures.loc["cod_pop"] / (2000 * 5)
-    orca_color = creatures.loc["orca_pop"] / (10 * 5)
-    krill_color = creatures.loc["krill_pop"] / (1.35e6 * 5)
-    penguin_color = creatures.loc["penguin_pop"] / (1000 * 5)
-    baleen_whale_color = creatures.loc["whale_pop"] / (5 * 25)
-    leopard_seal_color = creatures.loc["seal_pop"] / (50 * 5)
+    arctic_cod_color = creatures["cod_pop"] / (2000 * 6)
+    orca_color = creatures["orca_pop"] / (20)
+    krill_color = creatures["krill_pop"] / (1.8e6)
+    penguin_color = creatures["penguin_pop"] / (1200)
+    baleen_whale_color = creatures["whale_pop"] / (30)
+    leopard_seal_color = creatures["seal_pop"] / (50 * 2)
 
     #Checks if invasive species has been added to the creatures dictionary and, if yes, adds a color for it to the color list.
     if "King Crab" in creatures:
         king_crab_color = creatures["crab_pop"] / (1)
-        color_list = [arctic_cod_color, orca_color, krill_color, penguin_color, balleen_whale_color, leopard_seal_color, plankton_color,king_crab_color]
-        for i in range(len(color_list)):
-            if color_list[i] > 1:
-                color_list[i] = 1
+        color_list = [arctic_cod_color, orca_color, krill_color, penguin_color, balleen_whale_color, leopard_seal_color, king_crab_color]
 
     else:
-        color_list = [arctic_cod_color, orca_color, krill_color, penguin_color, balleen_whale_color, leopard_seal_color, plankton_color]
-        for i in range(len(color_list)):
-            if color_list[i] > 1:
-                color_list[i] = 1
+        color_list = [arctic_cod_color, orca_color, krill_color, penguin_color, baleen_whale_color, leopard_seal_color]
+
+    for i in range(len(color_list)):
+        if color_list[i] > 1:
+            color_list[i] = 1
 
     return color_list
 
@@ -93,9 +91,9 @@ def create_edges_dict(creatures, direction_dict, conversion_dict):
     It defines the edge values on the resulting Networkx graph.
     '''
     edges_dict = {}
-    for i in range(len(direction_dict)):
-        for j in range(len(direction_dict)):
-            edges_dict[(direction_dict[i] , direction_dict[i][j])] = creatures.loc[conversion_dict[i][j]]
+    for i in direction_dict:
+        for j in range(len(direction_dict[i])):
+            edges_dict[(i , direction_dict[i][j])] = int(creatures[conversion_dict[i][j]])
 
     return edges_dict
             
@@ -103,8 +101,8 @@ def create_edges_dict(creatures, direction_dict, conversion_dict):
 
 
 
-def food_web_plot(direction_dict, position_dict, edges_dict, node_color_list, 
-                  node_size_list):
+def food_web_plot(eco_dict, direction_dict, position_dict, conversion_dict, node_size_list, file_name, step = 100):
+    
     '''
     This function creates a Networkx graph.
 
@@ -118,7 +116,36 @@ def food_web_plot(direction_dict, position_dict, edges_dict, node_color_list,
     Output: A visual of the input data graphed using Networkx. This function does not return anything, it only prints an image.
     '''
     #Plots the Networkx Graph
-    G = nx.DiGraph(direction_dict)
-    plt.figure(3,figsize=(12,7)) #Sets the figuresize
-    nx.draw_networkx_edge_labels(G, pos = position_dict, edge_labels = edges_dict, verticalalignment = "bottom") #Plots edge labels
-    nx.draw_networkx(G, pos = position_dict, node_size = node_size_list, cmap = "BuPu", node_color = node_color_list, vmin = 0, vmax = 1, alpha = 0.8) #Plots the nodes in white with locations
+    import networkx as nx
+    import matplotlib.pyplot as plt
+    import time
+    from PIL import Image
+    import io
+    
+    images = []
+    for i in range(len(eco_dict)):
+        if i % step == 0 or i == (len(eco_dict)):
+            fig = plt.figure(3, figsize=(12,10), animated = True)
+            temp_im = io.BytesIO()
+            G = nx.DiGraph(direction_dict)
+            node_color_list = generate_color_list(eco_dict.iloc[i,:])
+            edges_dict = create_edges_dict(eco_dict.iloc[i,:], direction_dict, conversion_dict)
+            nx.draw_networkx_edge_labels(G, pos = position_dict, 
+                                         edge_labels = edges_dict, 
+                                         verticalalignment = "bottom") #Plots edge labels
+            nx.draw_networkx(G, pos = position_dict, 
+                             node_size = node_size_list, 
+                             cmap = "plasma", 
+                             node_color = node_color_list, 
+                             vmin = 0, vmax = 1, alpha = 0.8)
+            fig.savefig(temp_im, format='png')
+            temp_im.seek(0)
+            images.append(Image.open(temp_im))
+            G.clear()
+            fig.clear()
+    
+    images[0].save(file_name, 
+                   save_all=True, 
+                   append_images=images[1:], 
+                   duration=600, 
+                   loop=0)
