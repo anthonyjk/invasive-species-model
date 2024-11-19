@@ -7,7 +7,7 @@ Invasive Species Model
 Brendan Floyd<br>
 Anthony Kosinski<br>
 Jake Crosby<br>
-Dev Arnab<br>
+Dev Jyoti Ghosh Arnab<br>
 Riley LeFevre
 
 # The Model
@@ -84,7 +84,7 @@ Created matplotlib.pyplot visualizations with the resulting ecosystem data
 
 Primary organizer for creating slide decks
 
-**Dev Arnab**
+**Dev Jyoti Ghosh Arnab**
 
 Researched possible invasive species for the model
 
