@@ -282,7 +282,7 @@ def run(invasive=False, cod_birth_rate=1.5, cod_death_rate=0.1):
 
     returns: None
     '''
-    global eco_data, creatures
+    global eco_data, crab_data, creatures
     step = []
     krill_pop, krill_growth = [], []
     penguin_pop, penguin_growth, penguin_death, penguin_krill_consumed = [], [], [], []
