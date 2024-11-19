@@ -2,7 +2,7 @@ import numpy as np
 import math
 import random
 import pandas as pd
-from invasive_species import new_king_crab
+from invasive_species import king_crab
 
 creatures = {"baleen whale": 25,
              "krill": 1.45e6,
@@ -15,9 +15,25 @@ creatures = {"baleen whale": 25,
 
 # Functions to represent seasonal variability
 def seasonal_adjustment(day, amplitude=0.2):
+    """
+    Calculates how much seasonal adjustment should be added for each animal's growth rates based off of a sine wave.
+
+    day: The current day of the simulation
+    amplitude: The variability of the sine wave
+
+    returns: the calculated seasonal factor
+    """
     return 1 + amplitude * math.sin(day * (2 * math.pi / 365))
 
 def krill(day, base_growth_rate=1.05):
+    """
+    Calculates the population growth for krill
+
+    day: The current day of the simulation
+    base_growth_rate: The set growth rate for the krill
+
+    returns: The number of krill the population grew by
+    """
     global creatures
     carrying_capacity = 2000000
 
@@ -39,6 +55,15 @@ def krill(day, base_growth_rate=1.05):
     return krill_growth
 
 def cod(day, birth_rate=1.5, death_rate=0.1):
+    """
+    Calculates the population change for arctic cod, as well as its consumption
+
+    day: The current day of the simulation
+    birth rate: The set birth rate for the cod
+    death rate: The set death rate for the cod
+
+    returns: An array containing information of its growth, death, and consumption metrics
+    """
     global creatures
     carrying_capacity = 20000
     predation_factor = 20
@@ -66,6 +91,13 @@ def cod(day, birth_rate=1.5, death_rate=0.1):
     return [0, 0, 0]
 
 def penguin(day):
+    """
+    Calculates the population change for the penguin, as well as its consumption
+
+    day: The current day of the simulation
+
+    returns: An array containing information of its growth, death, and consumption metrics
+    """
     global creatures
     birth_rate = 0.4
     death_rate = 0.1
@@ -94,6 +126,15 @@ def penguin(day):
     return [penguin_growth, penguin_deaths, krill_eaten]
 
 def seal(day, birth_rate=0.3, death_rate=0.05):
+    """
+    Calculates the population change for the leopard seal, as well as its consumption
+
+    day: The current day of the simulation
+    birth_rate: The seal's set birth rate
+    death_rate: The seal's set death rate
+
+    returns: An array containing information of its growth, death, and consumption metrics
+    """
     global creatures
     carrying_capacity = 100
     predation_factor = {'krill': 1000, 'cod': 10}
@@ -126,6 +167,13 @@ def seal(day, birth_rate=0.3, death_rate=0.05):
     return [seal_growth, seal_deaths, krill_eaten, cod_eaten]
 
 def orca(day):
+    """
+    Calculates the population change for the orca, as well as its consumption
+
+    day: The current day of the simulation
+
+    returns: An array containing information of its growth, death, and consumption metrics
+    """
     global creatures
     birth_rate = 0.2
     death_rate = 0.15
@@ -165,6 +213,13 @@ def orca(day):
     return [orca_growth, orca_deaths, cod_eaten, penguin_eaten, seal_eaten]
 
 def whale(day):
+    """
+    Calculates the population change for the baleen whale, as well as its consumption
+
+    day: The current day of the simulation
+
+    returns: An array containing information of its growth, death, and consumption metrics
+    """
     global creatures
     birth_rate = 0.2
     death_rate = 0.1
@@ -194,6 +249,16 @@ def whale(day):
     return [whale_growth, whale_deaths, krill_eaten]
 
 def calculate_availability(prey, predator, factor, m=1):
+    """
+    Calculates the availability of a specific kind of prey for a predator
+
+    prey: number of available prey
+    predator: number of predators alive
+    factor: the predation factor of how much that predator consumes the prey
+    m: an adjustable scalar for fine-tuning
+
+    returns: the percentage availability for a given prey and predator
+    """
     if prey == 0:
         return 0
 
@@ -208,6 +273,15 @@ def calculate_availability(prey, predator, factor, m=1):
 eco_data = pd.DataFrame([])
 crab_data = pd.DataFrame([])
 def run(invasive=False, cod_birth_rate=1.5, cod_death_rate=0.1):
+    '''
+    Runs the simulation and adds the return information from each function to a pandas dataframe
+
+    invasive: Whether the invasive king crab species should be included in the simulation
+    cod_birth_rate: the birth rate of the cod
+    cod_death_rate: the death rate of the cod
+
+    returns: None
+    '''
     global eco_data, creatures
     step = []
     krill_pop, krill_growth = [], []
@@ -272,7 +346,7 @@ def run(invasive=False, cod_birth_rate=1.5, cod_death_rate=0.1):
 
         # King Crab (Invasive)
         if invasive:
-            creatures, data = new_king_crab(day, creatures)
+            creatures, data = king_crab(day, creatures)
             g, d, kc, cc = data
             crab_growth.append(g)
             crab_death.append(d)
@@ -322,6 +396,9 @@ def run(invasive=False, cod_birth_rate=1.5, cod_death_rate=0.1):
         })
 
 def reset_pops():
+    """
+    Resets the population of the ecosystem back to its inital state
+    """
     global creatures
     creatures = {"baleen whale": 25,
              "krill": 1.45e6,
@@ -331,7 +408,3 @@ def reset_pops():
              "orca": 10,
              "plankton": np.inf  # Infinite Plankton
     }
-#print("T")
-#run(invasive=True)
-#print("F")
-#run(invasive=False)
