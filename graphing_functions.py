@@ -39,7 +39,7 @@ def set_dictionaries():
     #Creates a list to use in the food_web_plot function as node sizes.
     node_size_list = [4500, 2000, 2000, 3000, 8000, 8000]
 
-    return direction_dict, position_dict, conversion_dict, node_size_list
+    return direction_dict, position_dict, conversion_dict, node_size_list #Returns the above dictionaries.
 
 
 
@@ -52,7 +52,7 @@ def generate_color_list(creatures):
     Outputs: A list of values for the intensity of the colors of the nodes in the Networkx graph. 
     Each value being between 0 and 1 (inclusive).
     '''
-    #Author Note, Update the denominator values when some testing is done
+    #Reduces the population of each species to a ratio of ~1, based on some roughly maximally attained values based on testing.
     arctic_cod_color = creatures["cod_pop"] / (2000 * 6)
     orca_color = creatures["orca_pop"] / (20)
     krill_color = creatures["krill_pop"] / (1.8e6)
@@ -61,18 +61,20 @@ def generate_color_list(creatures):
     leopard_seal_color = creatures["seal_pop"] / (50 * 2)
 
     #Checks if invasive species has been added to the creatures dictionary and, if yes, adds a color for it to the color list.
-    if "King Crab" in creatures:
-        king_crab_color = creatures["crab_pop"] / (1)
-        color_list = [arctic_cod_color, orca_color, krill_color, penguin_color, balleen_whale_color, leopard_seal_color, king_crab_color]
+    if "crab_pop" in creatures:
+        king_crab_color = creatures["crab_pop"] / (1000)
+        color_list = [arctic_cod_color, orca_color, krill_color, penguin_color, baleen_whale_color, leopard_seal_color, king_crab_color]
 
+    #If invasive species hasn't been added then defines the color list to not include it.
     else:
         color_list = [arctic_cod_color, orca_color, krill_color, penguin_color, baleen_whale_color, leopard_seal_color]
 
+    #Checks if any of the values in color list are greater than 1 and reduces them to 1 if they are
     for i in range(len(color_list)):
         if color_list[i] > 1:
             color_list[i] = 1
 
-    return color_list
+    return color_list #returns the color list
 
 
 
@@ -90,12 +92,17 @@ def create_edges_dict(creatures, direction_dict, conversion_dict):
     The edges_dict is specifically designed to be used in the food_web_plot in the place of the parameter with the same name.
     It defines the edge values on the resulting Networkx graph.
     '''
-    edges_dict = {}
-    for i in direction_dict:
-        for j in range(len(direction_dict[i])):
+    edges_dict = {} #Creates an empty dictionary
+    for i in direction_dict: #loops over all of the nodes contained in the direction dictionary
+        for j in range(len(direction_dict[i])): #Loops over the nodes the node defined by i connects to
             edges_dict[(i , direction_dict[i][j])] = int(creatures[conversion_dict[i][j]])
+            #The conversion_dict stores the node names as keys. Using the name of the node stored by i, we access a list.
+            #This list contains the strings used in the dataframe output by the ecosystem run function.
+            #So, conversion_dict[i][j] outputs a column title for the dataframe held by the creatures variable.
+            #The right side of this equation then as a whole outputs the value associated with that key as an integer.
+            #Each key accesses the number of an animal eaten by another and then stores it as the edge value in the dicitonary.
 
-    return edges_dict
+    return edges_dict #Returns the dictionary of edge values.
             
     
 
@@ -106,46 +113,45 @@ def food_web_plot(eco_dict, direction_dict, position_dict, conversion_dict, node
     '''
     This function creates a Networkx graph.
 
-    Inputs: direction_dict (dictionary type object), position_dict (dictionary type object), edges_dict (dictionary type object)
-    These inputs are obtained from the set_dictionaries function, edges_dict is designed to be updated before use.
-    node_color_array (list type object), is a list of values for the intensity of the colors of the nodes. It must be of
-    the same length as the number of nodes in the Networkx graph and each value must be between 0 and 1.
-    
-    Optional Input of node_size_array (array type object with length == len(direction_dict). Changing this array is not recommended.
+    Inputs: eco_dict (dictionary type object), direction_dict (dictionary type object), position_dict (dictionary type object), conversion_dict (dictionary type object), node_size_list (list type object), file_name (string type object), step (integer type object).
+    The dictionary type object inputs are obtained from the set_dictionaries function. This function makes use of the create_edges_dict function internally using the input dictionaries.
+    node_size_list (list type object), is a list of values for the size of the nodes in the networkx graph. It must be the same length as the number of nodes in the graph.
+    file_name (string type object) is the name for the gif that will be generated using the networkx graphs.
+    Optional Input of step (integer type object). This value tells the model how often to update the networkx graph. The default value is every 100 days. Regardless of step size, the model will always update the graph after the last day.
 
-    Output: A visual of the input data graphed using Networkx. This function does not return anything, it only prints an image.
+    Output: A visual of the input data graphed using Networkx in the form of a gif. This function does not return anything, it only save a gif type file.
     '''
-    #Plots the Networkx Graph
+    #importing libraries
     import networkx as nx
     import matplotlib.pyplot as plt
     import time
     from PIL import Image
     import io
     
-    images = []
-    for i in range(len(eco_dict)):
-        if i % step == 0 or i == (len(eco_dict)):
-            fig = plt.figure(3, figsize=(12,10), animated = True)
-            temp_im = io.BytesIO()
-            G = nx.DiGraph(direction_dict)
-            node_color_list = generate_color_list(eco_dict.iloc[i,:])
-            edges_dict = create_edges_dict(eco_dict.iloc[i,:], direction_dict, conversion_dict)
+    images = [] #defines a list to store the frames of the gif in
+    for i in range(len(eco_dict)): #Loops over all of the data generated by the model
+        if i % step == 0 or i == (len(eco_dict)): #Generates a frame for the gif only for the defined steps
+            fig = plt.figure(3, figsize=(12,10), animated = True) #Defines the figure size
+            temp_im = io.BytesIO() #Creates a temporary image variable using the io library
+            G = nx.DiGraph(direction_dict) #Creates a directional Networkx graph
+            node_color_list = generate_color_list(eco_dict.iloc[i,:]) #Updates the node_color_list
+            edges_dict = create_edges_dict(eco_dict.iloc[i,:], direction_dict, conversion_dict) #Updates the edges dictionary
             nx.draw_networkx_edge_labels(G, pos = position_dict, 
                                          edge_labels = edges_dict, 
-                                         verticalalignment = "bottom") #Plots edge labels
+                                         verticalalignment = "bottom") #Plots the edge labels
             nx.draw_networkx(G, pos = position_dict, 
                              node_size = node_size_list, 
                              cmap = "plasma", 
                              node_color = node_color_list, 
-                             vmin = 0, vmax = 1, alpha = 0.8)
-            fig.savefig(temp_im, format='png')
+                             vmin = 0, vmax = 1, alpha = 0.8) #Draws the networkx graph in a matplot figure
+            fig.savefig(temp_im, format='png') #Saves the networkx graph as a png over the temp_im variable
             temp_im.seek(0)
-            images.append(Image.open(temp_im))
-            G.clear()
-            fig.clear()
+            images.append(Image.open(temp_im)) #Adds the image to the images list
+            G.clear() #clears the plot
+            fig.clear() #clears the figure
     
     images[0].save(file_name, 
                    save_all=True, 
                    append_images=images[1:], 
                    duration=600, 
-                   loop=0)
+                   loop=0) #saves the list of images as a gif file.
