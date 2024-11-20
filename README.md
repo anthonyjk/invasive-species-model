@@ -58,6 +58,8 @@ ecosystem.crab_data # a Pandas DataFrame with information about the king crab's 
 
 ## Other Files
 
+The **eco_visual.ipynb** is a notebook containing graphs for ecosystem data in its default state.
+
 The **analysis.ipynb** is a notebook comparing the SVM and Logistic Regression models, as well as some analysis of the resulting graphs.
 
 The **Networkx.ipynb** and **graphing_functions.py** are files that are necessary to create the weighted graph representation of the ecosystem.
